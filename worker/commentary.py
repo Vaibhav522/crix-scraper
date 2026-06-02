@@ -5,7 +5,7 @@ from settings import ARCHIVAL_PATH
 from playwright_stealth import Stealth # type: ignore
 from utils import gen_filename
 from db import AsyncSessionLocal
-from repository import mark_url_completed, reserve_bucket_slot
+from repository import mark_url_completed
 
 
 COMMENTARY_PATH = "/v1/pages/match/comments"

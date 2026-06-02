@@ -3,8 +3,8 @@ import enum
 import datetime
 from dotenv import load_dotenv
 from typing import Optional
-from sqlalchemy import Text, BigInteger, Integer, DateTime, ForeignKey, Enum, text, Boolean
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import Text, Integer, DateTime, Enum, text, Boolean
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 
@@ -14,12 +14,12 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(
-    DATABASE_URL,
-    pool_size=20,
-    max_overflow=30,
-    pool_pre_ping=True,
-    pool_recycle=1800,
-)
+        DATABASE_URL,
+        pool_size=20,
+        max_overflow=30,
+        pool_pre_ping=True,
+        pool_recycle=1800,
+    )
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 

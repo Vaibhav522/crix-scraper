@@ -4,11 +4,10 @@ load_dotenv()
 
 import asyncio
 from multiprocessing import Process
-from db import AsyncSessionLocal
+from db import Base, engine
 from playwright.async_api import async_playwright
 from worker.scraper import scraper
-from utils import zip_worker, upload_worker, BrowserContext, zip_bucket_sync, upload_bucket_sync
-from repository import get_or_create_open_bucket
+from utils import zip_worker, upload_worker, BrowserContext
 
 
 SCRAPER_PROCESSES = 2
@@ -38,6 +37,9 @@ def upload_process_entry():
     asyncio.run(upload_worker())
 
 def main():
+    # intializing db
+    Base.metadata.create_all(bind=engine.sync_engine)
+    
     processes = []
 
     for i in range(SCRAPER_PROCESSES):

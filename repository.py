@@ -74,7 +74,7 @@ async def claim_file_for_zipping(session: AsyncSession, lease_seconds: int = 180
     stmt = (select(Url)
         .where(
             or_(
-                Url.file_donwloaded == True,
+                Url.file_downloaded == True,
                 (Url.file_status == FileStatus.zipping) & (Url.zip_lease_until < now),
             )
         )
@@ -146,7 +146,7 @@ async def mark_file_uploaded(session: AsyncSession, file_name: str, uploaded_id:
         update(Url)
         .where(Url.file_name == file_name)
         .values(
-            status=FileStatus.uploaded,
+            file_status=FileStatus.uploaded,
             uploaded_at=datetime.datetime.now(datetime.timezone.utc),
             upload_lease_until=None,
             uploaded_file_id=uploaded_id

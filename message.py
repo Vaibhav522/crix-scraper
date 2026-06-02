@@ -7,9 +7,9 @@ import urllib.error
 import urllib.request
 from typing import Optional
 
-from sqlalchemy import desc, func, select
+from sqlalchemy import func, select
 
-from db import AsyncSessionLocal, Bucket, Url, UrlStatus
+from db import AsyncSessionLocal, Url, UrlStatus, UrlType, FileStatus
 from settings import ARCHIVAL_PATH, ZIPPED_PATH
 
 from dotenv import load_dotenv
@@ -60,7 +60,9 @@ async def collect_worker_snapshot(uploaded_bucket_id: Optional[str] = None, uplo
 
     async with AsyncSessionLocal() as session:
         url_rows = await session.execute(select(Url.status, func.count()).group_by(Url.status))
-        bucket_rows = await session.execute(select(Bucket.status, func.count()).group_by(Bucket.status))
+        file_status_rows = await session.execute(select(Url.file_status, func.count()).group_by(Url.file_status))
+        type_rows = await session.execute(select(Url.url_type, func.count()).group_by(Url.url_type))
+
         total_urls = await session.scalar(select(func.count()).select_from(Url))
         completed_urls = await session.scalar(select(func.count()).select_from(Url).where(Url.status == UrlStatus.completed))
         failed_urls = await session.scalar(select(func.count()).select_from(Url).where(Url.status == UrlStatus.failed))
@@ -68,11 +70,19 @@ async def collect_worker_snapshot(uploaded_bucket_id: Optional[str] = None, uplo
         pending_urls = await session.scalar(select(func.count()).select_from(Url).where(Url.status == UrlStatus.pending))
         stale_leases = await session.scalar(select(func.count()).select_from(Url).where(Url.status == UrlStatus.in_progress, Url.lease_until < now))
         completed_last_hour = await session.scalar(select(func.count()).select_from(Url).where(Url.completed_at >= one_hour_ago))
-        latest_bucket = await session.scalar(select(Bucket).order_by(desc(Bucket.uploaded_at)).limit(1))
-        error_rows = await session.execute(select(Url.last_error, func.count()).where(Url.last_error.is_not(None)).group_by(Url.last_error).order_by(desc(func.count())).limit(5))
+        downloaded_files = await session.scalar(select(func.count()).select_from(Url).where(Url.file_downloaded == True))
+        pending_zip = await session.scalar(select(func.count()).select_from(Url).where(Url.file_downloaded == True, Url.file_status.is_(None)))
+        error_rows = await session.execute(
+            select(Url.last_error, func.count())
+            .where(Url.last_error.is_not(None))
+            .group_by(Url.last_error)
+            .order_by(func.count().desc())
+            .limit(5)
+        )
 
     url_counts = {_enum_value(status): count for status, count in url_rows.all()}
-    bucket_counts = {_enum_value(status): count for status, count in bucket_rows.all()}
+    file_status_counts = {_enum_value(status): count for status, count in file_status_rows.all()}
+    type_counts = {_enum_value(url_type): count for url_type, count in type_rows.all()}
     disk_total, disk_used, disk_free = shutil.disk_usage(ARCHIVAL_PATH)
 
     return {
@@ -86,10 +96,11 @@ async def collect_worker_snapshot(uploaded_bucket_id: Optional[str] = None, uplo
         "failed_urls": failed_urls or 0,
         "stale_leases": stale_leases or 0,
         "completed_last_hour": completed_last_hour or 0,
+        "downloaded_files": downloaded_files or 0,
+        "pending_zip": pending_zip or 0,
         "url_counts": url_counts,
-        "bucket_counts": bucket_counts,
-        "latest_uploaded_bucket": latest_bucket.bucket_id if latest_bucket else None,
-        "latest_uploaded_at": latest_bucket.uploaded_at.isoformat() if latest_bucket and latest_bucket.uploaded_at else None,
+        "file_status_counts": file_status_counts,
+        "type_counts": type_counts,
         "archival_size": _dir_size(ARCHIVAL_PATH),
         "zipped_size": _dir_size(ZIPPED_PATH),
         "disk_total": disk_total,
@@ -102,20 +113,16 @@ async def collect_worker_snapshot(uploaded_bucket_id: Optional[str] = None, uplo
 def build_discord_payload(snapshot):
     total = snapshot["total_urls"]
     completed = snapshot["completed_urls"]
-    title = "Crix scraper upload completed" if snapshot.get("uploaded_bucket_id") else "Crix scraper worker snapshot"
+    title = "Crix scraper worker snapshot"
 
     fields = [
-        {"name": "Uploaded bucket", "value": snapshot.get("uploaded_bucket_id") or "No upload event attached", "inline": False},
-        {"name": "Backblaze object", "value": snapshot.get("uploaded_object_name") or "Not provided", "inline": False},
-        {"name": "Progress", "value": f"{_format_count(completed)} / {_format_count(total)} ({_format_percent(completed, total)})", "inline": True},
-        {"name": "Last hour", "value": f"{_format_count(snapshot['completed_last_hour'])} completed", "inline": True},
-        {"name": "Pending", "value": _format_count(snapshot["pending_urls"]), "inline": True},
-        {"name": "In progress", "value": _format_count(snapshot["running_urls"]), "inline": True},
-        {"name": "Failed", "value": _format_count(snapshot["failed_urls"]), "inline": True},
-        {"name": "Stale leases", "value": _format_count(snapshot["stale_leases"]), "inline": True},
-        {"name": "URL status", "value": "\n".join(f"{key}: {_format_count(value)}" for key, value in sorted(snapshot["url_counts"].items())) or "No URL rows", "inline": True},
-        {"name": "Bucket status", "value": "\n".join(f"{key}: {_format_count(value)}" for key, value in sorted(snapshot["bucket_counts"].items())) or "No bucket rows", "inline": True},
-        {"name": "Local storage", "value": f"raw: {_format_bytes(snapshot['archival_size'])}\nzipped: {_format_bytes(snapshot['zipped_size'])}\nfree: {_format_bytes(snapshot['disk_free'])}", "inline": True},
+        {"name": "Progress", "value": f"{_format_count(completed)} / {_format_count(total)} ({_format_percent(completed, total)})", "inline": False},
+        {"name": "Queue status", "value": f"Pending: {_format_count(snapshot['pending_urls'])}\nIn progress: {_format_count(snapshot['running_urls'])}\nFailed: {_format_count(snapshot['failed_urls'])}\nStale leases: {_format_count(snapshot['stale_leases'])}", "inline": True},
+        {"name": "File pipeline", "value": f"Downloaded: {_format_count(snapshot['downloaded_files'])}\nPending zip: {_format_count(snapshot['pending_zip'])}\nZipping: {_format_count(snapshot['file_status_counts'].get('zipping', 0))}\nZipped: {_format_count(snapshot['file_status_counts'].get('zipped', 0))}\nUploading: {_format_count(snapshot['file_status_counts'].get('uploading', 0))}\nUploaded: {_format_count(snapshot['file_status_counts'].get('uploaded', 0))}", "inline": True},
+        {"name": "Recent throughput", "value": f"Completed last hour: {_format_count(snapshot['completed_last_hour'])}", "inline": True},
+        {"name": "URL type breakdown", "value": "\n".join(f"{key}: {_format_count(value)}" for key, value in sorted(snapshot['type_counts'].items())) or "No type rows", "inline": False},
+        {"name": "URL status counts", "value": "\n".join(f"{key}: {_format_count(value)}" for key, value in sorted(snapshot['url_counts'].items())) or "No URL rows", "inline": False},
+        {"name": "Storage", "value": f"raw: {_format_bytes(snapshot['archival_size'])}\nzipped: {_format_bytes(snapshot['zipped_size'])}\nfree: {_format_bytes(snapshot['disk_free'])}", "inline": False},
     ]
 
     if snapshot["top_errors"]:
@@ -125,8 +132,8 @@ def build_discord_payload(snapshot):
         "username": "crix-scraper",
         "embeds": [{
             "title": title,
-            "description": "Durable Postgres snapshot after bucket upload.",
-            "color": 0x2ECC71 if not snapshot["failed_urls"] else 0xF1C40F,
+            "description": "Snapshot of scraper queue, file pipeline, and storage status.",
+            "color": 0x2ECC71 if not snapshot["failed_urls"] else 0xE74C3C,
             "fields": fields,
             "timestamp": snapshot["timestamp"],
         }],

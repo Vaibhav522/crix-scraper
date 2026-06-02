@@ -12,7 +12,6 @@ import zstandard as zstd
 from db import AsyncSessionLocal
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME, CONTEXT_COUNT, USER_AGENT, CONTEXT_REFRESH_COUNT
-from repository import claim_bucket_for_zipping, mark_bucket_zipped, claim_bucket_for_upload, mark_bucket_uploaded, finalize_open_buckets
 from repository import claim_file_for_upload, claim_file_for_zipping, mark_file_zipped, mark_file_uploaded
 
 # generating filename from url with a hashing algorithm, gauranteing same text generates same hash

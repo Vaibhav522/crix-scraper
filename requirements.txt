@@ -7,4 +7,3 @@ SQLAlchemy
 zstandard
 scalene
 psycopg2-binary
-asyncpg

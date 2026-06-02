@@ -1,0 +1,10 @@
+asyncpg
+b2sdk
+playwright
+playwright-stealth
+python-dotenv
+SQLAlchemy
+zstandard
+scalene
+psycopg2-binary
+asyncpg

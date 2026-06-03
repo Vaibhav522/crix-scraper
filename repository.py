@@ -59,7 +59,7 @@ async def mark_url_failed(session: AsyncSession, url: str, error: str, max_attem
     if not row:
         return None
 
-    row.last_error = str(error)
+    row.last_error = error
     row.lease_until = None
     row.status = UrlStatus.failed if row.attempt_count >= max_attempts else UrlStatus.pending
 

@@ -3,6 +3,7 @@ load_dotenv()
 
 
 import asyncio
+from etl import insert_seed_urls
 from multiprocessing import Process
 from db import Base, engine
 from playwright.async_api import async_playwright

@@ -71,12 +71,12 @@ async def upload_worker():
         async with AsyncSessionLocal() as session:
             await mark_file_uploaded(session=session, file_name=file.file_name, uploaded_id=uploaded_id)
         
-
-        raw_file, zip_file = os.path.join(ARCHIVAL_PATH, file.file_name), os.path.join(ZIPPED_PATH, file.zipped_name)
-        if os.path.exists(raw_file):
-            os.remove(raw_file)
-        if os.path.exists(zip_file):
-            os.remove(zip_file)
+        if ZIPPED_PATH and file.zipped_name and file.file_name:
+            raw_file, zip_file = os.path.join(ARCHIVAL_PATH, file.file_name), os.path.join(ZIPPED_PATH, file.zipped_name)
+            if os.path.exists(raw_file):
+                os.remove(raw_file)
+            if os.path.exists(zip_file):
+                os.remove(zip_file)
 
 
 async def zip_worker():
@@ -88,12 +88,13 @@ async def zip_worker():
             await asyncio.sleep(5)
             continue
         
-        # zipping the file
-        zipped_file_name = zip_file(file.file_name)
+        if file and file.file_name:
+            # zipping the file
+            zipped_file_name = zip_file(file.file_name)
 
-        # marking zipped
-        async with AsyncSessionLocal() as session:
-            await mark_file_zipped(session=session, file_name=file.file_name, zipped_name=zipped_file_name)
+            # marking zipped
+            async with AsyncSessionLocal() as session:
+                await mark_file_zipped(session=session, file_name=file.file_name, zipped_name=zipped_file_name)
 
 
 class BrowserContext:

@@ -18,7 +18,7 @@ python3 -m venv ~/venv
 
 # 4. Activate the virtual environment
 echo "🔄 Activating virtual environment..."
-source venv/bin/activate
+source ~/venv/bin/activate
 
 # 5. Upgrade pip inside the environment
 echo "⬆️ Upgrading pip..."

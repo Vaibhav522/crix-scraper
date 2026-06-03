@@ -3,9 +3,8 @@ load_dotenv()
 
 
 import asyncio
-from etl import insert_seed_urls
-from multiprocessing import Process
-from db import Base, engine
+from multiprocessing import Process, set_start_method
+from db import Base, engine, init_db
 from playwright.async_api import async_playwright
 from worker.scraper import scraper
 from utils import zip_worker, upload_worker, BrowserContext
@@ -39,7 +38,7 @@ def upload_process_entry():
 
 def main():
     # intializing db
-    Base.metadata.create_all(bind=engine.sync_engine)
+    asyncio.run(init_db())
     
     processes = []
 
@@ -60,4 +59,5 @@ def main():
         process.join()
 
 if __name__ == "__main__":
+    set_start_method("spawn")
     main()

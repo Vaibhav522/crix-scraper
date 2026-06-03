@@ -104,6 +104,7 @@ class BrowserContext:
         self.contexts_used_count = 0
     
     async def create_context_pool(self):
+        print("creating contexts")
         for _ in range(CONTEXT_COUNT):
             context = await self.browser.new_context(viewport={"width": 1920, "height": 1080}, user_agent=USER_AGENT)
             self.context_pool.append(context)

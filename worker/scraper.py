@@ -17,6 +17,7 @@ async def scraper(ContextManager):
             job = await claim_next_url(session=session)
 
         if not job:
+            print("No scraping, job present! Closing scraper worker.")
             break
 
         try:

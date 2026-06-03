@@ -36,6 +36,8 @@ fi
 # 7. Install system dependencies and browser binaries for Playwright
 echo "🌐 Installing Playwright browsers and system dependencies..."
 playwright install chromium
+playwright install-deps chromium
+
 
 sudo apt install xvfb -y
 

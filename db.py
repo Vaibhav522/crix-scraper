@@ -62,7 +62,7 @@ class Url(Base):
     last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     url_type: Mapped[UrlType] = mapped_column(Enum(UrlType, name="url_type"), nullable=False, index=True)
     lease_until: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=text("CURRENT_TIMESTAMP"))
     last_attempt_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     url_discovered_from: Mapped[str] = mapped_column(Text, nullable=False, server_default="seed")

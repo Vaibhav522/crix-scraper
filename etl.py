@@ -1,4 +1,5 @@
 import csv
+import asyncio
 from db import Url, UrlType
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -60,5 +61,8 @@ async def transfer():
             await insert_seed_urls(session=session, csv_file=csv_file)
 
 
-import asyncio
-asyncio.run(transfer())
+
+if __name__ == "__main__":
+    # This block ONLY runs if etl.py is executed directly, 
+    # NOT when imported by main.py
+    asyncio.run(transfer())

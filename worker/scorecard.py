@@ -2,7 +2,6 @@ import os
 from settings import ARCHIVAL_PATH, REQUEST_TIMEOUT
 from utils import gen_filename
 from db import AsyncSessionLocal, UrlType
-from db import AsyncSessionLocal
 from repository import complete_scorecard
 
 

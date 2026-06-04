@@ -182,7 +182,7 @@ async def complete_scorecard(session: AsyncSession, url: str, file_name: str, di
             file_name=file_name,
             lease_until=None,
             last_error=None,
-            file_downloaded=True,
+            file_status=FileStatus.raw,
             completed_at=datetime.datetime.now(datetime.timezone.utc),
         )
     )

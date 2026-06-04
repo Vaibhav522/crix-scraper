@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Python imports
+import logging
 import asyncio
 from multiprocessing import Process, set_start_method
 
@@ -12,18 +13,35 @@ from utils import zip_worker, upload_worker
 from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("project.log"), # Saves to file
+        logging.StreamHandler()             # Prints to console
+    ]
+)
+
+
+
+logger = logging.getLogger(__name__)
+
+
 async def run_scraper_process(process_id: int):
-    tasks = [asyncio.create_task(scraper()) for _ in range(SCRAPER_PER_PROCESS)]
+    tasks = [asyncio.create_task(scraper(index=i)) for i in range(SCRAPER_PER_PROCESS)]
     await asyncio.gather(*tasks)
 
         
 def scraper_process_entry(process_id: int):
+    logger.info("Starting scraper worker")
     asyncio.run(run_scraper_process(process_id))
 
 def zip_process_entry():
+    logger.info("Starting zipper worker")
     asyncio.run(zip_worker())
 
 def upload_process_entry():
+    logger.info("Starting upload worker")
     asyncio.run(upload_worker())
 
 def main():

@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import logging
 import os
 import uuid
 import hashlib
@@ -10,6 +11,11 @@ from db import AsyncSessionLocal
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME
 from repository import claim_file_for_upload, claim_file_for_zipping, mark_file_zipped, mark_file_uploaded
+
+
+
+logger = logging.getLogger(__name__)
+
 
 # generating filename from url with a hashing algorithm, gauranteing same text generates same hash
 def gen_filename(url:str):
@@ -53,6 +59,7 @@ def zip_file(file_name: str):
 
 
 async def upload_worker():
+    logger.info("Intialized upload worker")
     while True:
         async with AsyncSessionLocal() as session:
             file = await claim_file_for_upload(session=session)
@@ -62,6 +69,7 @@ async def upload_worker():
             continue
 
         try:
+            logger.info(f"Got zip job, {file.zipped_name}")
             # uploading zipped file
             uploaded_id = await asyncio.to_thread(upload_file, file.zipped_name)
 
@@ -77,11 +85,12 @@ async def upload_worker():
                     os.remove(zip_file)
         
         except Exception as e:
-            print(f"Error in upload worker: {e}")
+            logger.error(f'Error in upload worker: {e}')
 
 
 
 async def zip_worker():
+    logger.info("Initalized zip worker")
     while True:
         async with AsyncSessionLocal() as session:
             file = await claim_file_for_zipping(session=session)
@@ -91,6 +100,7 @@ async def zip_worker():
             continue
         
         try:
+            logger.info(f"Got zip job, {file.file_name}")
             # zipping the file
             zipped_file_name = zip_file(file.file_name)
 
@@ -98,4 +108,4 @@ async def zip_worker():
             async with AsyncSessionLocal() as session:
                 await mark_file_zipped(session=session, file_name=file.file_name, zipped_name=zipped_file_name)
         except Exception as e:
-            print(f"Error in zip_worker: {e}")
+            logger.error(f'Error in zip worker: {e}')

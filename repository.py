@@ -1,6 +1,6 @@
 import datetime
 from settings import MAX_ATTEMPTS
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, select, update, and_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import Url, UrlStatus, UrlType, FileStatus
@@ -12,11 +12,22 @@ async def claim_next_url(session: AsyncSession, lease_seconds: int = 900):
 
     stmt = (
         select(Url)
-        .where(or_(Url.status == UrlStatus.pending, (Url.status == UrlStatus.in_progress) & (Url.lease_until < now) & (Url.attempt_count < MAX_ATTEMPTS)))
+        .where(
+            Url.attempt_count < MAX_ATTEMPTS,
+            or_(
+                Url.status == UrlStatus.pending,
+                and_(
+                    Url.status == UrlStatus.in_progress,
+                    Url.lease_until < now,
+                ),
+            ),
+        )
         .order_by(Url.created_at)
         .with_for_update(skip_locked=True)
         .limit(1)
     )
+
+    
 
     result = await session.execute(stmt)
     url = result.scalar_one_or_none()
@@ -43,7 +54,7 @@ async def mark_url_completed(session: AsyncSession, url: str, file_name: str):
             file_name=file_name,
             lease_until=None,
             last_error=None,
-            file_downloaded=True,
+            file_status=FileStatus.raw,
             completed_at=datetime.datetime.now(datetime.timezone.utc),
         )
     )
@@ -74,7 +85,7 @@ async def claim_file_for_zipping(session: AsyncSession, lease_seconds: int = 180
     stmt = (select(Url)
         .where(
             or_(
-                Url.file_downloaded == True,
+                Url.file_status == FileStatus.raw,
                 (Url.file_status == FileStatus.zipping) & (Url.zip_lease_until < now),
             )
         )

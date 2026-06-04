@@ -1,30 +1,20 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-
+# Python imports
 import asyncio
 from multiprocessing import Process, set_start_method
-from db import Base, engine, init_db
-from playwright.async_api import async_playwright
+
+# Package imports
+from db import init_db
 from worker.scraper import scraper
-from utils import zip_worker, upload_worker, BrowserContext
-
-
-SCRAPER_PROCESSES = 2
-WORKERS_PER_PROCESS = 2
+from utils import zip_worker, upload_worker
+from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS
 
 
 async def run_scraper_process(process_id: int):
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=False)
-
-        ContextManager = BrowserContext(browser=browser)
-        await ContextManager.create_context_pool()
-
-        tasks = [asyncio.create_task(scraper(ContextManager)) for _ in range(WORKERS_PER_PROCESS)]
-
-        await asyncio.gather(*tasks)
-        await browser.close()
+    tasks = [asyncio.create_task(scraper()) for _ in range(SCRAPER_PER_PROCESS)]
+    await asyncio.gather(*tasks)
 
         
 def scraper_process_entry(process_id: int):

@@ -9,7 +9,7 @@ from typing import Optional
 
 from sqlalchemy import func, select
 
-from db import AsyncSessionLocal, Url, UrlStatus, UrlType, FileStatus
+from db import AsyncSessionLocal, Url, UrlStatus
 from settings import ARCHIVAL_PATH, ZIPPED_PATH
 
 from dotenv import load_dotenv

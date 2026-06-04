@@ -26,11 +26,19 @@ os.makedirs(ZIPPED_PATH, exist_ok=True)
 # total files in a single zipped bucket
 BUCKET_SIZE = 50 #10000
 
-# Total context's per browser
-CONTEXT_COUNT = 5
-
-# context refresh count
-CONTEXT_REFRESH_COUNT = 50
-
 # dummy user agent
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
+
+# Total browser instances per process
+BROWSER_COUNT = 1
+
+# Total scraper process 
+SCRAPER_PROCESSES = 2
+
+# Total active concurrent workers 
+SCRAPER_PER_PROCESS = 2
+
+
+# Recycle browser after this use
+BROWSER_MAX_USE = 100

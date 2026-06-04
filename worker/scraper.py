@@ -4,25 +4,35 @@ from .extract_page import extract_page
 from db import AsyncSessionLocal, UrlType
 from repository import claim_next_url, mark_url_failed
 from playwright_stealth import Stealth
+from playwright.async_api import async_playwright
+from settings import USER_AGENT, BROWSER_MAX_USE
 
 
+async def create_browser():
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=False)
+    return browser
 
+async def scraper():
+    browser = None
+    browser_used_for = 0
+    browser = await create_browser()
 
-async def scraper(ContextManager):
     while True:
-        slot = None
         page = None
-
+        context = None
+        
         async with AsyncSessionLocal() as session:
             job = await claim_next_url(session=session)
 
         if not job:
             print("No scraping, job present! Closing scraper worker.")
+            await browser.close()
             break
 
         try:
-            # getting a random context from context pool
-            slot, context = await ContextManager.acquire_context()
+            # getting a random context from browser pool
+            context = await browser.new_context(viewport={"width": 1920, "height": 1080}, user_agent=USER_AGENT)
 
             page = await context.new_page()
             await Stealth().apply_stealth_async(page)
@@ -41,8 +51,14 @@ async def scraper(ContextManager):
         finally:
             if page:
                 await page.close()
-            if slot:
-                await ContextManager.release_context(slot)
+            if context:
+                await context.close()
+            
+            if browser_used_for > BROWSER_MAX_USE:
+                browser_used_for = 0
+                browser = await create_browser()
+            
+            browser_used_for += 1
 
             
                 

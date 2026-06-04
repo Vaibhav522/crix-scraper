@@ -54,8 +54,8 @@ async def insert_seed_urls(session: AsyncSession, csv_file: str):
 
 
 async def transfer():
-    csv_file = str(input("Enter csv file to transfer: "))
-
+    csv_file = input("Enter csv file to transfer: ")
+    
     if csv_file:
         async with AsyncSessionLocal() as session:
             await insert_seed_urls(session=session, csv_file=csv_file)

@@ -3,15 +3,12 @@ load_dotenv()
 
 import os
 import uuid
-import shutil
 import hashlib
 import asyncio
-import tarfile
-import random
 import zstandard as zstd
 from db import AsyncSessionLocal
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
-from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME, CONTEXT_COUNT, USER_AGENT, CONTEXT_REFRESH_COUNT
+from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME
 from repository import claim_file_for_upload, claim_file_for_zipping, mark_file_zipped, mark_file_uploaded
 
 # generating filename from url with a hashing algorithm, gauranteing same text generates same hash
@@ -64,19 +61,24 @@ async def upload_worker():
             await asyncio.sleep(5)
             continue
 
-        # uploading zipped file
-        uploaded_id = await asyncio.to_thread(upload_file, file.zipped_name)
+        try:
+            # uploading zipped file
+            uploaded_id = await asyncio.to_thread(upload_file, file.zipped_name)
 
-        # marking file uploaded 
-        async with AsyncSessionLocal() as session:
-            await mark_file_uploaded(session=session, file_name=file.file_name, uploaded_id=uploaded_id)
+            # marking file uploaded 
+            async with AsyncSessionLocal() as session:
+                await mark_file_uploaded(session=session, file_name=file.file_name, uploaded_id=uploaded_id)
+            
+            if ZIPPED_PATH and file.zipped_name and file.file_name:
+                raw_file, zip_file = os.path.join(ARCHIVAL_PATH, file.file_name), os.path.join(ZIPPED_PATH, file.zipped_name)
+                if os.path.exists(raw_file):
+                    os.remove(raw_file)
+                if os.path.exists(zip_file):
+                    os.remove(zip_file)
         
-        if ZIPPED_PATH and file.zipped_name and file.file_name:
-            raw_file, zip_file = os.path.join(ARCHIVAL_PATH, file.file_name), os.path.join(ZIPPED_PATH, file.zipped_name)
-            if os.path.exists(raw_file):
-                os.remove(raw_file)
-            if os.path.exists(zip_file):
-                os.remove(zip_file)
+        except Exception as e:
+            print(f"Error in upload worker: {e}")
+
 
 
 async def zip_worker():
@@ -88,35 +90,12 @@ async def zip_worker():
             await asyncio.sleep(5)
             continue
         
-        if file and file.file_name:
+        try:
             # zipping the file
             zipped_file_name = zip_file(file.file_name)
 
             # marking zipped
             async with AsyncSessionLocal() as session:
                 await mark_file_zipped(session=session, file_name=file.file_name, zipped_name=zipped_file_name)
-
-
-class BrowserContext:
-    def __init__(self, browser):
-        self.context_pool = []
-        self.browser = browser
-        self.contexts_used_count = 0
-    
-    async def create_context_pool(self):
-        print("creating contexts")
-        for _ in range(CONTEXT_COUNT):
-            context = await self.browser.new_context(viewport={"width": 1920, "height": 1080}, user_agent=USER_AGENT)
-            self.context_pool.append(context)
-    
-    async def assign_context(self):
-        if self.contexts_used_count >= CONTEXT_REFRESH_COUNT:
-            for context in self.context_pool:
-                await context.close()
-            
-            await self.create_context_pool()
-        
-        rand_pos = random.randint(0, len(self.context_pool) - 1)
-        self.contexts_used_count += 1
-
-        return self.context_pool[rand_pos]
+        except Exception as e:
+            print(f"Error in zip_worker: {e}")

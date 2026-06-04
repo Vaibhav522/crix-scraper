@@ -35,6 +35,7 @@ class Base(DeclarativeBase):
 
 class FileStatus(enum.Enum):
     unavailable = "unavailable"
+    raw = "raw"
     zipped = "zipped"
     zipping = "zipping"
     uploaded = "uploaded"
@@ -67,7 +68,6 @@ class Url(Base):
     completed_at: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     url_discovered_from: Mapped[str] = mapped_column(Text, nullable=False, server_default="seed")
     
-    file_downloaded: Mapped[bool] = mapped_column(Boolean, default=False)
     file_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     zipped_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     uploaded_file_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

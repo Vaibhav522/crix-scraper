@@ -19,12 +19,12 @@ async def extract_scorecard(page, score_card_url):
 
             // extracting commentary page link
             let commentary_element = document.querySelector('a[href*="/ball-by-ball-commentary"]');
-            data.is_commentary = commentary_element ? commentary_element.getAttribute('href') : null;
+            data.is_commentary = commentary_element ? commentary_element.href : null;
 
             // extracting all cricketer pages links
             let cricketer_elements = document.querySelectorAll('a[href*="/cricketers/"]');
             if (cricketer_elements) {
-                cricketer_elements.forEach(item => data.cricketers.push(item.getAttribute("href")))
+                cricketer_elements.forEach(item => data.cricketers.push(item.href))
             } else {
                 data.cricketers = null
             }
@@ -32,7 +32,7 @@ async def extract_scorecard(page, score_card_url):
             // extracting all venue pages links
             let venue_element = document.querySelectorAll('a[href*="/cricket-grounds/"]');
             if (venue_element) {
-                venue_element.forEach(item => data.venue.push(item.getAttribute("href")))
+                venue_element.forEach(item => data.venue.push(item.href))
             } else {
                 data.venue = null
             }

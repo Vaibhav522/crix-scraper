@@ -13,17 +13,15 @@ from settings import USER_AGENT, BROWSER_MAX_USE
 logger = logging.getLogger(__name__)
 
 
-async def create_browser():
+async def scraper(index):
+    browser = None
+    playwright = None
+    
+    
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(headless=False)
 
-    logger.info("Created new browser")
-    return browser
-
-async def scraper(index):
-    browser = None
     browser_used_for = 0
-    browser = await create_browser()
 
     logger.info(f"Started scraper worker: {index}")
 
@@ -68,10 +66,16 @@ async def scraper(index):
             if browser_used_for > BROWSER_MAX_USE:
                 await browser.close()
 
+                browser = await playwright.chromium.launch(headless=False)
                 browser_used_for = 0
-                browser = await create_browser()
             
             browser_used_for += 1
+    
+    if browser:
+        await browser.close()
+    if playwright:
+        await playwright.stop()
+    
 
             
                 

@@ -7,7 +7,7 @@ from db import AsyncSessionLocal, UrlType
 from repository import claim_next_url, mark_url_failed
 from playwright_stealth import Stealth
 from playwright.async_api import async_playwright
-from settings import USER_AGENT, BROWSER_MAX_USE, SRAPER_WORKER_STATUS
+from settings import USER_AGENT, BROWSER_MAX_USE, SCRAPER_WORKER_STATUS
 
 from multiprocessing.shared_memory import SharedMemory
 
@@ -39,8 +39,6 @@ async def scraper(index):
         if not job:
             logger.info("No scraping job present, closing scraper worker")
             await browser.close()
-
-            status.buf[SRAPER_WORKER_STATUS] = 0
 
             break
 
@@ -82,6 +80,8 @@ async def scraper(index):
         await browser.close()
     if playwright:
         await playwright.stop()
+    
+    status.buf[SCRAPER_WORKER_STATUS] = 0
     
 
             

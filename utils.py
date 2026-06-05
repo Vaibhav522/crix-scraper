@@ -9,7 +9,7 @@ import asyncio
 import zstandard as zstd
 from db import AsyncSessionLocal
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
-from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME, SRAPER_WORKER_STATUS, UPLOAD_WORKER_STATUS, ZIPPER_WORKER_STATUS
+from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME, SCRAPER_WORKER_STATUS, UPLOAD_WORKER_STATUS, ZIPPER_WORKER_STATUS
 from repository import claim_file_for_upload, claim_file_for_zipping, mark_file_zipped, mark_file_uploaded
 from multiprocessing.shared_memory import SharedMemory
 
@@ -68,7 +68,7 @@ async def upload_worker():
         
         if not file:
             zipper_status = bool(status.buf[ZIPPER_WORKER_STATUS])
-            if not zip_worker:
+            if not zipper_status:
                 status.buf[UPLOAD_WORKER_STATUS] = 0
                 break
             
@@ -104,7 +104,7 @@ async def zip_worker():
             file = await claim_file_for_zipping(session=session)
         
         if not file:
-            scraper_status = bool(status.buf[SRAPER_WORKER_STATUS])
+            scraper_status = bool(status.buf[SCRAPER_WORKER_STATUS])
 
             if not scraper_status:
                 status.buf[ZIPPER_WORKER_STATUS] = 0

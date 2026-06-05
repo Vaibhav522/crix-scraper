@@ -11,7 +11,7 @@ from multiprocessing import Process, set_start_method
 from db import init_db
 from worker.scraper import scraper
 from utils import zip_worker, upload_worker
-from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS, SRAPER_WORKER_STATUS, ZIPPER_WORKER_STATUS, UPLOAD_WORKER_STATUS
+from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS, SCRAPER_WORKER_STATUS, ZIPPER_WORKER_STATUS, UPLOAD_WORKER_STATUS
 
 # shared memory
 from multiprocessing.shared_memory import SharedMemory
@@ -79,7 +79,7 @@ def main():
     processes.append(uploader)
 
 
-    worker_status.buf[SRAPER_WORKER_STATUS] = 1
+    worker_status.buf[SCRAPER_WORKER_STATUS] = 1
     worker_status.buf[ZIPPER_WORKER_STATUS] = 1
     worker_status.buf[UPLOAD_WORKER_STATUS] = 1
 

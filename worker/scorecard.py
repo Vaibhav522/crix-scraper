@@ -2,7 +2,7 @@ import os
 from settings import ARCHIVAL_PATH, REQUEST_TIMEOUT
 from utils import gen_filename
 from db import AsyncSessionLocal, UrlType
-from repository import complete_scorecard
+from repository import complete_scorecard, mark_url_failed
 
 
 async def extract_scorecard(page, score_card_url):
@@ -61,13 +61,20 @@ async def extract_scorecard(page, score_card_url):
 
     file_path = os.path.join(ARCHIVAL_PATH, file_name)
 
+
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(content)
-
-    async with AsyncSessionLocal() as session:
-        await complete_scorecard(
-            session=session,
-            url=score_card_url,
-            file_name=file_name,
-            discovered_urls=discovered_urls,
-        )
+    
+    if os.path.getsize(file_path) > 2048:
+        async with AsyncSessionLocal() as session:
+            await complete_scorecard(
+                session=session,
+                url=score_card_url,
+                file_name=file_name,
+                raw_file_size=os.path.getsize(file_path),
+                discovered_urls=discovered_urls,
+            )
+    else:
+        async with AsyncSessionLocal() as session:
+            await mark_url_failed(session=session, url=score_card_url, error="File size: smaller than acceptable")
+        os.remove(file_path)

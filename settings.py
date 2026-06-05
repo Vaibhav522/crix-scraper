@@ -42,3 +42,13 @@ SCRAPER_PER_PROCESS = 2
 
 # Recycle browser after this use
 BROWSER_MAX_USE = 100
+
+
+
+# Defining index of shared memory state
+
+
+
+SRAPER_WORKER_STATUS = 0
+ZIPPER_WORKER_STATUS = 1
+UPLOAD_WORKER_STATUS = 3

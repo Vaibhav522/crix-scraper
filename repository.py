@@ -14,6 +14,7 @@ async def claim_next_url(session: AsyncSession, lease_seconds: int = 900):
         select(Url)
         .where(
             Url.attempt_count < MAX_ATTEMPTS,
+            and_(Url.url_type != UrlType.cricketer, Url.url_type != UrlType.venue),
             or_(
                 Url.status == UrlStatus.pending,
                 and_(
@@ -45,7 +46,7 @@ async def claim_next_url(session: AsyncSession, lease_seconds: int = 900):
     return url
 
 
-async def mark_url_completed(session: AsyncSession, url: str, file_name: str):
+async def mark_url_completed(session: AsyncSession, url: str, file_name: str, raw_file_size: int):
     stmt = (
         update(Url)
         .where(Url.url == url)
@@ -54,6 +55,7 @@ async def mark_url_completed(session: AsyncSession, url: str, file_name: str):
             file_name=file_name,
             lease_until=None,
             last_error=None,
+            raw_file_size=raw_file_size,
             file_status=FileStatus.raw,
             completed_at=datetime.datetime.now(datetime.timezone.utc),
         )
@@ -168,7 +170,7 @@ async def mark_file_uploaded(session: AsyncSession, file_name: str, uploaded_id:
 
 
 
-async def complete_scorecard(session: AsyncSession, url: str, file_name: str, discovered_urls: list[tuple[str, UrlType]]):
+async def complete_scorecard(session: AsyncSession, url: str, file_name: str, discovered_urls: list[tuple[str, UrlType]], raw_file_size: int):
     if discovered_urls:
         rows = [{"url": item_url, "url_type": item_type, "url_discovered_from": url} for item_url, item_type in discovered_urls]
         stmt = pg_insert(Url).values(rows).on_conflict_do_nothing(index_elements=["url"])
@@ -183,6 +185,7 @@ async def complete_scorecard(session: AsyncSession, url: str, file_name: str, di
             lease_until=None,
             last_error=None,
             file_status=FileStatus.raw,
+            raw_file_size=raw_file_size,
             completed_at=datetime.datetime.now(datetime.timezone.utc),
         )
     )

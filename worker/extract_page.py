@@ -2,7 +2,7 @@ import os
 from utils import gen_filename
 from db import AsyncSessionLocal
 from settings import ARCHIVAL_PATH, REQUEST_TIMEOUT
-from repository import mark_url_completed
+from repository import mark_url_completed, mark_url_failed
 
 
 # both the player, venue is a single page download we can achieve this from a single function
@@ -19,5 +19,10 @@ async def extract_page(page, url):
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(content)
 
-    async with AsyncSessionLocal() as session:
-        await mark_url_completed(session=session, url=url, file_name=file_name)
+    if os.path.getsize(file_path) > 2048:
+        async with AsyncSessionLocal() as session:
+            await mark_url_completed(session=session, url=url, file_name=file_name, raw_file_size=os.path.getsize(file_path))
+    else:
+        async with AsyncSessionLocal() as session:
+            await mark_url_failed(session=session, url=url, error="File size: smaller than acceptable")
+        os.remove(file_path)

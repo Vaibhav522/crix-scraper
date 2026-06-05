@@ -69,6 +69,7 @@ class Url(Base):
     url_discovered_from: Mapped[str] = mapped_column(Text, nullable=False, server_default="seed")
     
     file_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    raw_file_size: Mapped[Optional[int]] = mapped_column(Integer)
     zipped_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     uploaded_file_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     file_status: Mapped[FileStatus] = mapped_column(Enum(FileStatus, name="file_status"), nullable=False, server_default="unavailable")

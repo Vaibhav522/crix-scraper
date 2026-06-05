@@ -7,13 +7,17 @@ from db import AsyncSessionLocal, UrlType
 from repository import claim_next_url, mark_url_failed
 from playwright_stealth import Stealth
 from playwright.async_api import async_playwright
-from settings import USER_AGENT, BROWSER_MAX_USE
+from settings import USER_AGENT, BROWSER_MAX_USE, SRAPER_WORKER_STATUS
+
+from multiprocessing.shared_memory import SharedMemory
 
 
 logger = logging.getLogger(__name__)
 
 
 async def scraper(index):
+    status = SharedMemory(name="worker_status")
+
     browser = None
     playwright = None
     
@@ -35,6 +39,9 @@ async def scraper(index):
         if not job:
             logger.info("No scraping job present, closing scraper worker")
             await browser.close()
+
+            status.buf[SRAPER_WORKER_STATUS] = 0
+
             break
 
         try:
@@ -49,8 +56,8 @@ async def scraper(index):
                 await extract_scorecard(page, job.url)
             elif job.url_type == UrlType.commentary:
                 await extract_commentary(page, job.url)
-            elif job.url_type in (UrlType.venue, UrlType.cricketer):
-                await extract_page(page, job.url)
+            # elif job.url_type in (UrlType.venue, UrlType.cricketer):
+            #    await extract_page(page, job.url)
 
         except Exception as e:
             logger.error(f"Scraper worker {index} faced error: {e}")

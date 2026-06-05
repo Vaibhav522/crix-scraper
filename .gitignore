@@ -1,3 +1,5 @@
 .env
 *.csv
 __pycache__
+/chrome-profile
+pyrefly.toml

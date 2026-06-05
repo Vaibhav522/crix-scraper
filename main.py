@@ -1,3 +1,4 @@
+import multiprocessing
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -10,7 +11,21 @@ from multiprocessing import Process, set_start_method
 from db import init_db
 from worker.scraper import scraper
 from utils import zip_worker, upload_worker
-from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS
+from settings import SCRAPER_PROCESSES, SCRAPER_PER_PROCESS, SRAPER_WORKER_STATUS, ZIPPER_WORKER_STATUS, UPLOAD_WORKER_STATUS
+
+# shared memory
+from multiprocessing.shared_memory import SharedMemory
+
+
+
+
+try:
+    worker_status = SharedMemory(create=True, name="worker_status", size=3)
+except:
+    worker_status = SharedMemory(name="worker_status")
+
+
+worker_status.buf[0:3] = b'\x00\x00\x00'
 
 
 logging.basicConfig(
@@ -63,8 +78,18 @@ def main():
     uploader.start()
     processes.append(uploader)
 
+
+    worker_status.buf[SRAPER_WORKER_STATUS] = 1
+    worker_status.buf[ZIPPER_WORKER_STATUS] = 1
+    worker_status.buf[UPLOAD_WORKER_STATUS] = 1
+
+
     for process in processes:
         process.join()
+    
+    worker_status.close()
+    worker_status.unlink()
+
 
 if __name__ == "__main__":
     set_start_method("spawn")

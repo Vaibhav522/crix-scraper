@@ -5,7 +5,7 @@ from settings import ARCHIVAL_PATH
 from playwright_stealth import Stealth # type: ignore
 from utils import gen_filename
 from db import AsyncSessionLocal
-from repository import mark_url_completed
+from repository import mark_url_completed, mark_url_failed
 
 
 COMMENTARY_PATH = "/v1/pages/match/comments"
@@ -145,6 +145,11 @@ async def extract_commentary(page, commentary_url):
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(all_data, file, indent=2)
 
-    async with AsyncSessionLocal() as session:
-        await mark_url_completed(session=session, url=commentary_url, file_name=file_name)
+    if os.path.getsize(file_path) > 2048:
+        async with AsyncSessionLocal() as session:
+            await mark_url_completed(session=session, url=commentary_url, file_name=file_name, raw_file_size=os.path.getsize(file_path))
+    else:
+        async with AsyncSessionLocal() as session:
+            await mark_url_failed(session=session, url=commentary_url, error="File size: smaller than acceptable")
+        os.remove(file_path)
 

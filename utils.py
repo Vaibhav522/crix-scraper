@@ -9,9 +9,9 @@ import asyncio
 import zstandard as zstd
 from db import AsyncSessionLocal
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
-from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME
+from settings import ARCHIVAL_PATH, ZIPPED_PATH, BUCKET_NAME, SRAPER_WORKER_STATUS, UPLOAD_WORKER_STATUS, ZIPPER_WORKER_STATUS
 from repository import claim_file_for_upload, claim_file_for_zipping, mark_file_zipped, mark_file_uploaded
-
+from multiprocessing.shared_memory import SharedMemory
 
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,8 @@ def zip_file(file_name: str):
     return final_name
 
 
+status = SharedMemory(name="worker_status")
+
 async def upload_worker():
     logger.info("Intialized upload worker")
     while True:
@@ -65,6 +67,11 @@ async def upload_worker():
             file = await claim_file_for_upload(session=session)
         
         if not file:
+            zipper_status = bool(status.buf[ZIPPER_WORKER_STATUS])
+            if not zip_worker:
+                status.buf[UPLOAD_WORKER_STATUS] = 0
+                break
+            
             await asyncio.sleep(5)
             continue
 
@@ -91,11 +98,18 @@ async def upload_worker():
 
 async def zip_worker():
     logger.info("Initalized zip worker")
+
     while True:
         async with AsyncSessionLocal() as session:
             file = await claim_file_for_zipping(session=session)
         
         if not file:
+            scraper_status = bool(status.buf[SRAPER_WORKER_STATUS])
+
+            if not scraper_status:
+                status.buf[ZIPPER_WORKER_STATUS] = 0
+                break
+
             await asyncio.sleep(5)
             continue
         

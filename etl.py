@@ -53,6 +53,26 @@ async def insert_seed_urls(session: AsyncSession, csv_file: str):
     print(f"inserted, {len(urls)}")
 
 
+async def transfer(batch_size: int = 5000):
+    csv_file = input("Enter csv file to transfer: ")
+    
+    if csv_file:
+        data = read_csv(csv_file)
+
+        if not data:
+            print("Empty file")
+            return False
+        
+        async with AsyncSessionLocal() as session:
+            for i in range(0, len(data), batch_size):
+                batch_data = data[i, i+batch_size]
+                rows = [{"url": url, "url_type": UrlType.scorecard} for url in batch_data]
+                stmt = pg_insert(Url).values(rows).on_conflict_do_nothing(index_elements=["url"])
+                await session.execute(stmt)
+                await session.commit()
+                print(f"Inserted -> {i}-{len(batch_size)}")
+
+
 async def transfer():
     csv_file = input("Enter csv file to transfer: ")
     

@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 async def scraper(index):
-    status = SharedMemory(name="worker_status")
-
     browser = None
     playwright = None
     
@@ -80,8 +78,6 @@ async def scraper(index):
         await browser.close()
     if playwright:
         await playwright.stop()
-    
-    status.buf[SCRAPER_WORKER_STATUS] = 0
     
 
             

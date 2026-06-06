@@ -50,6 +50,7 @@ async def run_scraper_process(process_id: int):
 def scraper_process_entry(process_id: int):
     logger.info("Starting scraper worker")
     asyncio.run(run_scraper_process(process_id))
+    worker_status.buf[SCRAPER_WORKER_STATUS] = 0
 
 def zip_process_entry():
     logger.info("Starting zipper worker")

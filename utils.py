@@ -58,10 +58,12 @@ def zip_file(file_name: str):
     return final_name
 
 
-status = SharedMemory(name="worker_status")
+
 
 async def upload_worker():
     logger.info("Intialized upload worker")
+    status = SharedMemory(name="worker_status")
+
     while True:
         async with AsyncSessionLocal() as session:
             file = await claim_file_for_upload(session=session)
@@ -98,6 +100,7 @@ async def upload_worker():
 
 async def zip_worker():
     logger.info("Initalized zip worker")
+    status = SharedMemory(name="worker_status")
 
     while True:
         async with AsyncSessionLocal() as session:

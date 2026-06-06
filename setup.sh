@@ -6,7 +6,7 @@ set -e
 echo "🚀 Starting project setup..."
 
 # 1. Update package lists (Optional, uncomment if needed)
-sudo apt update && apt upgrade -y
+sudo apt update && sudo apt upgrade -y
 
 # 2. Ensure Python3 and Virtual Environment tools are installed
 echo "📦 Checking for Python and venv..."
